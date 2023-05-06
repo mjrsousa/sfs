@@ -36,6 +36,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.lang.Math;
+import java.lang.System;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Hashtable;
@@ -293,11 +295,29 @@ public class Factory extends JPanel implements ActionListener, KeyListener {
 		new Thread(new Runnable() {
 			public void run() {
 				long time = 0;
+				long timestamp = System.nanoTime();
 				while (true) {
 					try {
-						Thread.sleep(Factory.getInstance().getSimulationTime());
+						long sleepTimeNs =
+								Factory.getInstance().getSimulationTime() * 1000000 -
+								(System.nanoTime() - timestamp);
+						long sleepTimeFracMs = Math.max(
+								Math.round(Math.floor(sleepTimeNs/1000000.0)),
+								Math.round(Factory.getInstance().getSimulationTime()*0.10));
+						int sleepTimeFracNs  = (int) Math.round(sleepTimeNs - Math.floor(sleepTimeNs/1000000.0)*1000000.0);
+						
+						/*System.out.println("Sleep time (ns): " + sleepTimeNs);
+						System.out.println("Sleep time     : " +
+								Math.round(Math.floor(sleepTimeNs/1000000.0)) + " (ms), " +
+								Math.round(sleepTimeNs - Math.floor(sleepTimeNs/1000000.0)*1000000.0) + " (ns)");*/
+						
+						Thread.sleep(sleepTimeFracMs, sleepTimeFracNs);
 					} catch (InterruptedException e) {
 					}
+
+					// Save system timestamp in milisec
+					timestamp = System.nanoTime();
+
 					for (Block block : Factory.getInstance().getBlocks())
 						block.resetMovements();
 					// Verify if blocks are on the floor
