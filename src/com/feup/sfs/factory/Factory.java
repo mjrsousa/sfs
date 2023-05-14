@@ -76,7 +76,8 @@ public class Factory extends JPanel implements ActionListener, KeyListener {
 	private double pixelSize;
 	private double blockSize;
 	private double sensorRadius;
-	private int simulationTime;
+	private long targetSimulationTime;
+	private long   realSimulationTime;
 
 	private ArrayList<Block> blocks = new ArrayList<Block>();
 	private ArrayList<Facility> facilities = new ArrayList<Facility>();
@@ -112,13 +113,14 @@ public class Factory extends JPanel implements ActionListener, KeyListener {
 	private static Random rng = new Random();
 
 
-	public Factory(int width, int heigth, double blockSize, double pixelSize, int simulationTime, double conveyorSpeed, double sensorRadius, double rotationSpeed, int errorTime, int floorTime, double toolRotationSpeed, double pushSpeed, String floorColor, String recordFile, String playbackFile, double toolMoveSpeed, double speedDelta) throws FileNotFoundException {
+	public Factory(int width, int heigth, double blockSize, double pixelSize, int targetSimulationTime, double conveyorSpeed, double sensorRadius, double rotationSpeed, int errorTime, int floorTime, double toolRotationSpeed, double pushSpeed, String floorColor, String recordFile, String playbackFile, double toolMoveSpeed, double speedDelta) throws FileNotFoundException {
 		
 		this.width = width;
 		this.heigth = heigth;
 		this.blockSize = blockSize;
 		this.pixelSize = pixelSize;
-		this.simulationTime = simulationTime;
+		this.targetSimulationTime = targetSimulationTime;
+		this.realSimulationTime   = targetSimulationTime; // will be set later to correct value
 		this.conveyorSpeed = conveyorSpeed;
 		this.sensorRadius = sensorRadius;
 		this.rotationSpeed = rotationSpeed;
@@ -295,28 +297,36 @@ public class Factory extends JPanel implements ActionListener, KeyListener {
 		new Thread(new Runnable() {
 			public void run() {
 				long time = 0;
-				long timestamp = System.nanoTime();
+				long timestampBeg_curr_ms = System.currentTimeMillis();  // begining of current  step/cycle
+				long timestampBeg_prev_ms = timestampBeg_curr_ms;        // begining of previous step/cycle
+				long timestampEnd_curr_ns = System.nanoTime();           //      end of current  step/cycle
+				long timestampBeg_curr_ns = timestampEnd_curr_ns;        // begining of current  step/cycle
+
 				while (true) {
 					try {
+						timestampEnd_curr_ns  = System.nanoTime();
 						long sleepTimeNs =
-								Factory.getInstance().getSimulationTime() * 1000000 -
-								(System.nanoTime() - timestamp);
+								Factory.getInstance().getTargetSimulationTime() * 1000000 -
+								(timestampEnd_curr_ns - timestampBeg_curr_ns);
 						long sleepTimeFracMs = Math.max(
 								Math.round(Math.floor(sleepTimeNs/1000000.0)),
-								Math.round(Factory.getInstance().getSimulationTime()*0.10));
+								Math.round(Factory.getInstance().getTargetSimulationTime()*0.10));
 						int sleepTimeFracNs  = (int) Math.round(sleepTimeNs - Math.floor(sleepTimeNs/1000000.0)*1000000.0);
 						
-						/*System.out.println("Sleep time (ns): " + sleepTimeNs);
-						System.out.println("Sleep time     : " +
-								Math.round(Math.floor(sleepTimeNs/1000000.0)) + " (ms), " +
-								Math.round(sleepTimeNs - Math.floor(sleepTimeNs/1000000.0)*1000000.0) + " (ns)");*/
-						
-						Thread.sleep(sleepTimeFracMs, sleepTimeFracNs);
+						// we don't get to sleep if we are running behind
+						if (sleepTimeNs > 0)
+							Thread.sleep(sleepTimeFracMs, sleepTimeFracNs);
+						timestampBeg_curr_ns = System.nanoTime();
+
+						//System.err.println("Sleep time = " + sleepTimeNs);
+
 					} catch (InterruptedException e) {
 					}
-
-					// Save system timestamp in milisec
-					timestamp = System.nanoTime();
+					// Get start time of new simulation step
+					timestampBeg_prev_ms = timestampBeg_curr_ms;
+					timestampBeg_curr_ms = System.currentTimeMillis();
+					// Set how long the previous iteration/step took to run
+					Factory.getInstance().setSimulationTime(timestampBeg_curr_ms - timestampBeg_prev_ms);
 
 					for (Block block : Factory.getInstance().getBlocks())
 						block.resetMovements();
@@ -521,8 +531,20 @@ public class Factory extends JPanel implements ActionListener, KeyListener {
 		transformations.add(transformation);
 	}
 
+	public long getTargetSimulationTime() {
+		return targetSimulationTime;
+	}
+
+	// Set the real simulation step/cycle time
+	// This values is updated every cycle to the cycle time of the last cycle
+	public void setSimulationTime(long t) {
+		realSimulationTime = t;
+	}
+
+	// Get the real simulation step/cycle time
+	// This values is updated every cycle to the cycle time of the last cycle
 	public long getSimulationTime() {
-		return simulationTime;
+		return realSimulationTime;
 	}
 
 	public ArrayList<Block> getBlocks() {
