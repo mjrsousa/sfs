@@ -146,9 +146,12 @@ public class Warehouse {
 						return;
 					}
 					orders.removeFirst();
-					if (stocks.get(new Integer(o.getBlocktype()).intValue()) > 0) {
+                    // We allow removal if current stock is '> 0', OR stock is '< 0' i.e. infinite stock 
+					if (stocks.get(new Integer(o.getBlocktype()).intValue()) != 0) {
 						Factory.getInstance().addBlock(o.getBlocktype(), o.getOut().getCenterX(), o.getOut().getCenterY());
-						Integer i = new Integer(stocks.get(new Integer(o.getBlocktype()).intValue()) - 1);
+						Integer i = new Integer(stocks.get(new Integer(o.getBlocktype()).intValue()));
+                        if (i > 0)  // only substract from stock if warehouse has finite stock
+                            i = i - 1;
 						stocks.put(new Integer(o.getBlocktype()), i);
 					}
 				}
