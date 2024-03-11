@@ -352,15 +352,13 @@ public class Factory extends JPanel implements ActionListener, KeyListener {
 					for (Facility facility : Factory.getInstance().getFacilities())
 						facility.doStep(false);
 					// Move affected Blocks
-					for (Block block : Factory.getInstance().getBlocks())
-						block.doStep();
-					// Test for collisions
-					for (Block block1 : Factory.getInstance().getBlocks())
+					for (Block block1 : Factory.getInstance().getBlocks()) {
+						block1.doStep();
+					    // Test for collisions
 						for (Block block2 : Factory.getInstance().getBlocks())
-							if (block1 != block2 && !block1.isOnTheFloor() && !block2.isOnTheFloor() && block1.getBounds().intersects(block2.getBounds())) {
+							if (block1 != block2 && !block1.isOnTheFloor() && !block2.isOnTheFloor() && block1.getBounds().intersects(block2.getBounds()))
 								block1.undoStep();
-								block2.undoStep();
-							}
+                    }
 					// Move orders
 					for (int i = 1; i <= Factory.getInstance().warehouses.size(); i++)
 						Factory.getInstance().warehouses.get(new Integer(i)).doStep();
