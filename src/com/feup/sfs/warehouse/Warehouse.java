@@ -36,6 +36,7 @@ public class Warehouse {
 
 	private Factory factory;
 
+	private boolean show;
 	private double centerX;
 	private double centerY;
 	private double width;
@@ -50,7 +51,8 @@ public class Warehouse {
 	private int mintime;
 	private int maxtime;
 
-	public Warehouse(Factory factory, int id, double centerX, double centerY, double width, double length, String orientation, Properties properties) {
+	public Warehouse(Factory factory, int id, boolean show, double centerX, double centerY, double width, double length, String orientation, Properties properties) {
+		this.show = show;
 		this.factory = factory;
 		this.centerX = centerX;
 		this.centerY = centerY;
@@ -75,6 +77,9 @@ public class Warehouse {
 	}
 
 	public void paint(Graphics g) {
+        if (!show)
+            return;
+
 		g.setColor(Color.lightGray);
 		Rectangle bounds = getBounds();
 		g.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
